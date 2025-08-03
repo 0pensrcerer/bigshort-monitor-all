@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Trading Data Monitor",
+  "version": "1.0",
+  "description": "Automatically monitors trading chart data by simulating mousemove events every 0.5 seconds",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://*.bigshort.com/*",
+    "https://bigshort.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.bigshort.com/*",
+        "https://bigshort.com/*"
+      ],
+      "js": [
+        "content/chart-targeting.js",
+        "content/mouse-event-simulator.js", 
+        "content/table-data-extractor.js",
+        "content/storage-manager.js",
+        "content/monitoring-controller.js",
+        "content/message-handler.js",
+        "content/trading-data-monitor.js",
+        "content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidebar.html"
+  },
+  "action": {
+    "default_title": "Trading Data Monitor"
+  }
+}

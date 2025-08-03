@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { 
+      width: 100%;
+      height: 100vh;
+      padding: 0;
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      overflow-x: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .content {
+      padding: 20px;
+      height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+    
+    .status { 
+      padding: 15px; 
+      border-radius: 10px; 
+      margin: 20px 0; 
+      font-weight: bold;
+      text-align: center;
+      animation: fadeIn 0.3s ease-in;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .enabled { 
+      background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); 
+      color: #155724; 
+      border: 1px solid #c3e6cb;
+    }
+    
+    .disabled { 
+      background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); 
+      color: #721c24; 
+      border: 1px solid #f5c6cb;
+    }
+    
+    .info {
+      background: linear-gradient(135deg, #e2e3e5 0%, #d6d8db 100%);
+      color: #383d41;
+      border: 1px solid #d6d8db;
+    }
+    
+    .error {
+      background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .warning {
+      background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    
+    .button-container {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    
+    button { 
+      flex: 1;
+      padding: 15px 20px; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-weight: bold;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .enable-btn { 
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+      color: white; 
+    }
+    
+    .enable-btn:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(40,167,69,0.3);
+    }
+    
+    .disable-btn { 
+      background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%); 
+      color: white; 
+    }
+    
+    .disable-btn:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(220,53,69,0.3);
+    }
+    
+    .reload-btn {
+      background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+      color: white;
+      width: 100%;
+      margin-top: 15px;
+    }
+    
+    .reload-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(108,117,125,0.3);
+    }
+    
+    .note {
+      background: #e7f3ff;
+      border-left: 4px solid #0066cc;
+      padding: 12px;
+      border-radius: 0 6px 6px 0;
+      font-size: 12px;
+      color: #0066cc;
+      margin: 15px 0;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Table data display styles */
+    .table-data-section {
+      background: white;
+      border-radius: 10px;
+      margin: 20px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    .table-data-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 15px;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .data-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #dc3545;
+      animation: pulse 2s infinite;
+    }
+    
+    .data-indicator.active {
+      background: #28a745;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    
+    .table-data-content {
+      padding: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .data-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      margin: 5px 0;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border-left: 3px solid #667eea;
+      transition: all 0.2s ease;
+    }
+    
+    .data-item:hover {
+      background: #e9ecef;
+      transform: translateX(2px);
+    }
+    
+    .data-item.changed {
+      border-left-color: #28a745;
+      background: #d4edda;
+      animation: highlight 1s ease-out;
+    }
+    
+    @keyframes highlight {
+      0% { background: #28a745; }
+      100% { background: #d4edda; }
+    }
+    
+    .data-label {
+      font-weight: 600;
+      color: #495057;
+      font-size: 12px;
+      flex: 1;
+    }
+    
+    .data-value {
+      color: #333;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      background: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+      max-width: 60%;
+      text-align: right;
+      word-break: break-all;
+    }
+    
+    .nested-data {
+      margin-top: 8px;
+      padding-left: 15px;
+    }
+    
+    .nested-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 8px;
+      margin: 2px 0;
+      background: white;
+      border-radius: 4px;
+      font-size: 10px;
+    }
+    
+    .no-data {
+      text-align: center;
+      color: #6c757d;
+      font-style: italic;
+      padding: 20px;
+    }
+    
+    /* Dropdown menu styles */
+    .data-item {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .data-item.dropdown-active {
+      z-index: 1001;
+    }
+    
+    .threshold-dropdown {
+      position: fixed;
+      background: white;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      padding: 15px;
+      min-width: 250px;
+      max-width: 300px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      z-index: 1002;
+      display: none;
+      animation: dropdownSlide 0.2s ease-out;
+    }
+    
+    .threshold-dropdown.show {
+      display: block;
+    }
+    
+    @keyframes dropdownSlide {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .dropdown-header {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 10px;
+      font-size: 12px;
+      border-bottom: 1px solid #dee2e6;
+      padding-bottom: 5px;
+    }
+    
+    .threshold-input-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin: 8px 0;
+    }
+    
+    .threshold-input {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .threshold-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
+    }
+    
+    .threshold-checkbox-group {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      padding: 4px 0;
+    }
+    
+    .threshold-checkbox-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-size: 11px;
+      color: #495057;
+      user-select: none;
+    }
+    
+    .threshold-absolute-checkbox {
+      margin-right: 8px;
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    
+    .threshold-absolute-checkbox:checked + .checkmark::after {
+      opacity: 1;
+    }
+    
+    .absolute-help {
+      font-size: 10px;
+      color: #6c757d;
+      font-style: italic;
+    }
+    
+    .threshold-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-save {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-save:hover {
+      background: #218838;
+    }
+    
+    .btn-clear {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-clear:hover {
+      background: #c82333;
+    }
+    
+    .btn-close {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-close:hover {
+      background: #545b62;
+    }
+    
+    .threshold-status {
+      font-size: 10px;
+      margin-top: 8px;
+      padding: 4px 6px;
+      border-radius: 3px;
+      text-align: center;
+    }
+    
+    .status-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .status-info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    
+    .threshold-examples {
+      font-size: 9px;
+      color: #6c757d;
+      margin-top: 5px;
+      line-height: 1.2;
+    }
+    
+    .data-item.has-threshold {
+      border-left-color: #ffc107;
+      background: #fff3cd;
+      padding-right: 150px; /* Make room for threshold indicators */
+    }
+    
+    .data-item.has-threshold:hover {
+      background: #ffeaa7;
+    }
+    
+    .threshold-indicator {
+      position: absolute;
+      top: 8px;
+      right: 30px;
+      font-size: 9px;
+      color: #856404;
+      font-weight: 600;
+      background: rgba(255, 193, 7, 0.3);
+      padding: 2px 4px;
+      border-radius: 3px;
+      display: none;
+    }
+    
+    .threshold-icon {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 12px;
+      display: none;
+    }
+    
+    .data-item.has-threshold .threshold-indicator,
+    .data-item.has-threshold .threshold-icon {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>🔍 Trading Data Monitor</h2>
+  </div>
+  
+  <div class="content">
+    <div id="status" class="status">Checking status...</div>
+    
+    <div class="button-container" id="button-container">
+      <button id="enable-btn" class="enable-btn">Enable</button>
+      <button id="disable-btn" class="disable-btn">Disable</button>
+    </div>
+    
+    <div class="note">
+      <strong>Note:</strong> This controls monitoring for the current tab only. Other BigShort tabs are unaffected. <strong>RELOAD PAGE AFTER DISABLING.</strong>
+    </div>
+    
+    <!-- Table Data Section -->
+    <div class="table-data-section" id="table-data-section" style="display: none;">
+      <div class="table-data-header">
+        <span class="data-indicator" id="data-indicator"></span>
+        📊 Live Trading Data
+      </div>
+      <div class="table-data-content" id="table-data-content">
+        <div class="no-data" id="no-data">No data available - monitoring may be disabled or no tooltip detected</div>
+      </div>
+    </div>
+  </div>
+  
+  <script type="module" src="sidebar.js"></script>
+</body>
+</html>

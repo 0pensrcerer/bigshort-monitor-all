@@ -170,10 +170,30 @@
       background: #28a745;
     }
     
+    .data-indicator.flash {
+      animation: flash 0.3s ease-out;
+    }
+    
     @keyframes pulse {
       0% { opacity: 1; }
       50% { opacity: 0.5; }
       100% { opacity: 1; }
+    }
+    
+    @keyframes flash {
+      0% { 
+        background: #28a745; 
+        transform: scale(1); 
+      }
+      50% { 
+        background: #20c997; 
+        transform: scale(1.3); 
+        box-shadow: 0 0 8px rgba(40, 167, 69, 0.6);
+      }
+      100% { 
+        background: #28a745; 
+        transform: scale(1); 
+      }
     }
     
     .table-data-content {
@@ -192,11 +212,99 @@
       border-radius: 6px;
       border-left: 3px solid #667eea;
       transition: all 0.2s ease;
+      cursor: grab;
+      user-select: none;
+      position: relative;
     }
     
     .data-item:hover {
       background: #e9ecef;
       transform: translateX(2px);
+    }
+    
+    .data-item.dragging {
+      opacity: 0.5;
+      transform: rotate(2deg);
+      cursor: grabbing;
+      z-index: 1000;
+    }
+    
+    .data-item.drag-over {
+      border-top: 3px solid #28a745;
+      margin-top: 8px;
+    }
+    
+    .data-item.hidden {
+      opacity: 0.4;
+      background: #f1f3f4;
+      border-left-color: #6c757d;
+    }
+    
+    .data-item.hidden .data-label,
+    .data-item.hidden .data-value {
+      opacity: 0.6;
+    }
+    
+    .hide-toggle {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 16px;
+      height: 16px;
+      border: none;
+      border-radius: 3px;
+      background: #6c757d;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      z-index: 10;
+    }
+    
+    .hide-toggle:hover {
+      background: #495057;
+      transform: scale(1.1);
+    }
+    
+    .data-item:hover .hide-toggle {
+      display: flex;
+    }
+    
+    .data-item.hidden .hide-toggle {
+      display: flex;
+      background: #28a745;
+    }
+    
+    .data-item.hidden .hide-toggle:hover {
+      background: #218838;
+    }
+    
+    .show-hidden-section {
+      margin: 10px 0;
+      padding: 8px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border: 1px dashed #dee2e6;
+    }
+    
+    .show-hidden-toggle {
+      background: none;
+      border: none;
+      color: #6c757d;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+    
+    .show-hidden-toggle:hover {
+      background: #e9ecef;
+      color: #495057;
     }
     
     .data-item.changed {
@@ -454,6 +562,87 @@
     .data-item.has-threshold .threshold-icon {
       display: block;
     }
+    
+    /* Debug section styles */
+    .debug-section {
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin: 15px 0;
+      border: 1px solid #dee2e6;
+      max-height: 300px;
+      overflow: hidden;
+    }
+    
+    .debug-header {
+      background: #495057;
+      color: white;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .debug-toggle {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    
+    .debug-toggle:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    
+    .debug-content {
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    
+    .debug-info {
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      line-height: 1.3;
+      color: #495057;
+      white-space: pre-wrap;
+    }
+    
+    .show-debug-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+      margin: 10px 0;
+      transition: all 0.2s ease;
+    }
+    
+    .show-debug-btn:hover {
+      background: #545b62;
+    }
+    
+    .restart-content-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+      margin: 5px 0;
+      transition: all 0.2s ease;
+    }
+    
+    .restart-content-btn:hover {
+      background: #c82333;
+    }
   </style>
 </head>
 <body>
@@ -483,6 +672,23 @@
         <div class="no-data" id="no-data">No data available - monitoring may be disabled or no tooltip detected</div>
       </div>
     </div>
+    
+    <!-- Debug Section -->
+    <div class="debug-section" id="debug-section" style="display: none;">
+      <div class="debug-header">
+        🐛 Debug Information
+        <button class="debug-toggle" id="debug-toggle">Hide</button>
+      </div>
+      <div class="debug-content" id="debug-content">
+        <div class="debug-info" id="debug-info">No debug information yet...</div>
+      </div>
+    </div>
+    
+    <!-- Debug Toggle Button -->
+    <button class="show-debug-btn" id="show-debug-btn">Show Debug Info</button>
+    
+    <!-- Content Script Restart Button -->
+    <button class="restart-content-btn" id="restart-content-btn">Restart Content Script</button>
   </div>
   
   <script type="module" src="sidebar.js"></script>

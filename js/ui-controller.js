@@ -4,12 +4,19 @@ export class UIController {
     this.dataService = dataService;
     this.activeDropdown = null;
     this.debugCallback = null;
+    this.dataOrder = []; // Store the current order of data items
+    this.hiddenItems = []; // Store hidden item keys
+    this.draggedElement = null;
+    this.showHiddenItems = false; // Toggle for showing hidden items
     
     // Callback registrations
     this.enableCallback = null;
     this.disableCallback = null;
     this.thresholdSetCallback = null;
     this.thresholdClearCallback = null;
+    this.orderChangedCallback = null;
+    this.hiddenItemsChangedCallback = null;
+    this.reRenderCallback = null;
   }
   
   setDebugCallback(callback) {
@@ -40,6 +47,26 @@ export class UIController {
     this.thresholdClearCallback = callback;
   }
   
+  onOrderChanged(callback) {
+    this.orderChangedCallback = callback;
+  }
+  
+  onHiddenItemsChanged(callback) {
+    this.hiddenItemsChangedCallback = callback;
+  }
+  
+  onReRender(callback) {
+    this.reRenderCallback = callback;
+  }
+  
+  setDataOrder(order) {
+    this.dataOrder = [...order];
+  }
+  
+  setHiddenItems(hiddenItems) {
+    this.hiddenItems = [...hiddenItems];
+  }
+  
   renderTableData(data, thresholdResults) {
     const container = document.getElementById('table-data-content');
     const noDataDiv = document.getElementById('no-data');
@@ -49,36 +76,69 @@ export class UIController {
       return;
     }
     
+    this.addDebugInfo(`Rendering data with ${Object.keys(data).length} total items`);
+    
     // Store any active dropdown info before clearing
     let activeDropdownKey = null;
     if (this.activeDropdown) {
       activeDropdownKey = this.activeDropdown.getAttribute('data-key');
     }
     
-    // Hide no-data message
-    noDataDiv.style.display = 'none';
-    
     // Clear existing data items
     this.clearDataItems(container);
     
-    // Create data items for each key-value pair
-    Object.entries(data).forEach(([key, value]) => {
-      const item = this.createDataItem(key, value, thresholdResults[key], activeDropdownKey === key);
-      container.appendChild(item);
+    // Create ordered list of keys
+    const orderedKeys = this.getOrderedKeys(data);
+    const visibleKeys = orderedKeys.filter(key => !this.hiddenItems.includes(key) || this.showHiddenItems);
+    const hiddenKeys = orderedKeys.filter(key => this.hiddenItems.includes(key));
+    
+    this.addDebugInfo(`Ordered keys: ${orderedKeys.length}, Visible: ${visibleKeys.length}, Hidden: ${hiddenKeys.length}`);
+    
+    // If no visible items and no hidden items to show, display no data message
+    if (visibleKeys.length === 0 && (hiddenKeys.length === 0 || this.showHiddenItems)) {
+      this.addDebugInfo('No visible items to render - showing no data message');
+      noDataDiv.style.display = 'block';
+      return;
+    }
+    
+    // Hide no-data message since we have items to show
+    noDataDiv.style.display = 'none';
+    
+    // Create data items for visible items
+    visibleKeys.forEach(key => {
+      if (data.hasOwnProperty(key)) {
+        // Only apply hidden styling if we're in "show hidden mode" AND the item is still hidden
+        // Unhidden items should always appear normal
+        const shouldShowAsHidden = this.showHiddenItems && this.hiddenItems.includes(key);
+        const item = this.createDataItem(key, data[key], thresholdResults[key], activeDropdownKey === key, shouldShowAsHidden);
+        container.appendChild(item);
+      }
     });
+    
+    // Add show/hide hidden toggle if there are hidden items
+    if (hiddenKeys.length > 0) {
+      const showHiddenSection = this.createShowHiddenSection(hiddenKeys.length);
+      container.appendChild(showHiddenSection);
+    }
     
     this.addGlobalClickHandler();
   }
   
   clearDataItems(container) {
-    const existingItems = container.querySelectorAll('.data-item');
+    const existingItems = container.querySelectorAll('.data-item, .show-hidden-section');
     existingItems.forEach(item => item.remove());
   }
   
-  createDataItem(key, value, thresholdResult, isActiveDropdown) {
+  createDataItem(key, value, thresholdResult, isActiveDropdown, isHidden = false) {
     const dataItem = document.createElement('div');
-    dataItem.className = 'data-item changed';
+    dataItem.className = 'data-item';
     dataItem.setAttribute('data-key', key);
+    dataItem.draggable = true;
+    
+    // Apply hidden state
+    if (isHidden) {
+      dataItem.classList.add('hidden');
+    }
     
     // Apply threshold styling
     if (thresholdResult && thresholdResult.hasThreshold) {
@@ -94,6 +154,16 @@ export class UIController {
     if (isActiveDropdown) {
       dataItem.classList.add('dropdown-active');
     }
+    
+    // Create hide toggle button
+    const hideToggle = document.createElement('button');
+    hideToggle.className = 'hide-toggle';
+    hideToggle.textContent = isHidden ? '👁' : '✕';
+    hideToggle.title = isHidden ? 'Show item' : 'Hide item';
+    hideToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleItemVisibility(key);
+    });
     
     // Create label
     const label = document.createElement('div');
@@ -133,10 +203,19 @@ export class UIController {
     
     dataItem.appendChild(label);
     dataItem.appendChild(valueDiv);
+    dataItem.appendChild(hideToggle);
+    
+    // Add drag and drop event listeners
+    this.addDragAndDropListeners(dataItem);
     
     // Add click listener for dropdown (only if not already active)
     if (!isActiveDropdown) {
       dataItem.addEventListener('click', (e) => {
+        // Don't trigger dropdown if we're dragging
+        if (dataItem.classList.contains('dragging')) {
+          return;
+        }
+        
         e.preventDefault();
         e.stopPropagation();
         
@@ -145,12 +224,170 @@ export class UIController {
       });
     }
     
-    // Remove animation class after delay
-    setTimeout(() => {
-      dataItem.classList.remove('changed');
-    }, 1000);
-    
     return dataItem;
+  }
+  
+  getOrderedKeys(data) {
+    const dataKeys = Object.keys(data);
+    
+    // If no saved order, return keys as they are
+    if (this.dataOrder.length === 0) {
+      this.dataOrder = [...dataKeys];
+      return dataKeys;
+    }
+    
+    // Filter saved order to only include current keys, then add any new keys
+    const orderedKeys = this.dataOrder.filter(key => dataKeys.includes(key));
+    const newKeys = dataKeys.filter(key => !this.dataOrder.includes(key));
+    
+    // Update stored order with any new keys
+    if (newKeys.length > 0) {
+      this.dataOrder = [...orderedKeys, ...newKeys];
+      this.saveCurrentOrder();
+    }
+    
+    return this.dataOrder;
+  }
+  
+  addDragAndDropListeners(dataItem) {
+    dataItem.addEventListener('dragstart', (e) => {
+      this.draggedElement = dataItem;
+      dataItem.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', dataItem.outerHTML);
+    });
+    
+    dataItem.addEventListener('dragend', (e) => {
+      dataItem.classList.remove('dragging');
+      this.clearDragOver();
+      this.draggedElement = null;
+    });
+    
+    dataItem.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      
+      if (this.draggedElement && this.draggedElement !== dataItem) {
+        this.clearDragOver();
+        dataItem.classList.add('drag-over');
+      }
+    });
+    
+    dataItem.addEventListener('dragleave', (e) => {
+      dataItem.classList.remove('drag-over');
+    });
+    
+    dataItem.addEventListener('drop', (e) => {
+      e.preventDefault();
+      
+      if (this.draggedElement && this.draggedElement !== dataItem) {
+        this.reorderItems(this.draggedElement, dataItem);
+      }
+      
+      this.clearDragOver();
+    });
+  }
+  
+  clearDragOver() {
+    document.querySelectorAll('.data-item').forEach(item => {
+      item.classList.remove('drag-over');
+    });
+  }
+  
+  reorderItems(draggedItem, targetItem) {
+    const container = document.getElementById('table-data-content');
+    const draggedKey = draggedItem.getAttribute('data-key');
+    const targetKey = targetItem.getAttribute('data-key');
+    
+    // Update the order array
+    const draggedIndex = this.dataOrder.indexOf(draggedKey);
+    const targetIndex = this.dataOrder.indexOf(targetKey);
+    
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      // Remove dragged item from its current position
+      this.dataOrder.splice(draggedIndex, 1);
+      
+      // Insert it before the target item
+      const newTargetIndex = this.dataOrder.indexOf(targetKey);
+      this.dataOrder.splice(newTargetIndex, 0, draggedKey);
+      
+      // Move DOM element
+      container.insertBefore(draggedItem, targetItem);
+      
+      // Save the new order
+      this.saveCurrentOrder();
+      
+      this.addDebugInfo(`Reordered: moved ${draggedKey} before ${targetKey}`);
+    }
+  }
+  
+  saveCurrentOrder() {
+    if (this.orderChangedCallback) {
+      this.orderChangedCallback(this.dataOrder);
+    }
+  }
+  
+  toggleItemVisibility(key) {
+    const index = this.hiddenItems.indexOf(key);
+    if (index > -1) {
+      // Show item - remove from hidden list
+      this.hiddenItems.splice(index, 1);
+      this.addDebugInfo(`Showing item: ${key}`);
+      
+      // When unhiding an item, exit "show hidden items" mode so user sees clean list
+      this.showHiddenItems = false;
+    } else {
+      // Hide item
+      this.hiddenItems.push(key);
+      this.addDebugInfo(`Hiding item: ${key}`);
+      
+      // When hiding an item, exit "show hidden items" mode so it disappears completely
+      this.showHiddenItems = false;
+    }
+    
+    // Save hidden items
+    this.saveHiddenItems();
+    
+    // Trigger immediate re-render with current data
+    this.triggerReRender();
+  }
+  
+  createShowHiddenSection(hiddenCount) {
+    const section = document.createElement('div');
+    section.className = 'show-hidden-section';
+    
+    const toggle = document.createElement('button');
+    toggle.className = 'show-hidden-toggle';
+    
+    // Set button text based on current state
+    if (this.showHiddenItems) {
+      toggle.textContent = `🙈 Hide ${hiddenCount} hidden item${hiddenCount > 1 ? 's' : ''}`;
+    } else {
+      toggle.textContent = `👁 Show ${hiddenCount} hidden item${hiddenCount > 1 ? 's' : ''}`;
+    }
+    
+    toggle.addEventListener('click', () => {
+      this.showHiddenItems = !this.showHiddenItems;
+      this.addDebugInfo(`${this.showHiddenItems ? 'Showing' : 'Hiding'} hidden items`);
+      // Trigger immediate re-render to toggle hidden items visibility
+      this.triggerReRender();
+    });
+    
+    section.appendChild(toggle);
+    return section;
+  }
+  
+  saveHiddenItems() {
+    if (this.hiddenItemsChangedCallback) {
+      this.hiddenItemsChangedCallback(this.hiddenItems);
+    }
+  }
+  
+  triggerReRender() {
+    if (this.reRenderCallback) {
+      this.addDebugInfo('Triggering immediate re-render');
+      this.reRenderCallback();
+    }
   }
   
   createThresholdDropdown(dataKey, currentValue, triggerElement) {
@@ -393,6 +630,12 @@ export class UIController {
     const indicator = document.getElementById('data-indicator');
     if (active) {
       indicator.classList.add('active');
+      
+      // Add flash effect on data update
+      indicator.classList.add('flash');
+      setTimeout(() => {
+        indicator.classList.remove('flash');
+      }, 300);
     } else {
       indicator.classList.remove('active');
     }
@@ -400,5 +643,54 @@ export class UIController {
   
   hideButtonsForNonBigShort() {
     document.getElementById('button-container').style.display = 'none';
+  }
+  
+  setupDebugUI() {
+    const showDebugBtn = document.getElementById('show-debug-btn');
+    const debugSection = document.getElementById('debug-section');
+    const debugToggle = document.getElementById('debug-toggle');
+    const restartContentBtn = document.getElementById('restart-content-btn');
+    
+    showDebugBtn.addEventListener('click', () => {
+      debugSection.style.display = 'block';
+      showDebugBtn.style.display = 'none';
+    });
+    
+    debugToggle.addEventListener('click', () => {
+      debugSection.style.display = 'none';
+      showDebugBtn.style.display = 'block';
+    });
+    
+    restartContentBtn.addEventListener('click', async () => {
+      this.addDebugInfo('Restarting content script...');
+      try {
+        const tab = await this.getCurrentTab();
+        if (tab) {
+          const response = await chrome.runtime.sendMessage({ 
+            action: 'reinject_content_script', 
+            tabId: tab.id 
+          });
+          if (response.success) {
+            this.addDebugInfo('Content script restarted successfully');
+          } else {
+            this.addDebugInfo(`Content script restart failed: ${response.error}`);
+          }
+        }
+      } catch (error) {
+        this.addDebugInfo(`Content script restart error: ${error.message}`);
+      }
+    });
+  }
+  
+  async getCurrentTab() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab;
+  }
+  
+  updateDebugInfo(debugMessages) {
+    const debugInfo = document.getElementById('debug-info');
+    if (debugInfo) {
+      debugInfo.textContent = debugMessages.slice(-20).join('\n'); // Show last 20 messages
+    }
   }
 }

@@ -77,4 +77,66 @@ export class StorageService {
       throw error;
     }
   }
+  
+  async getDataOrder() {
+    try {
+      const tab = await this.getCurrentTab();
+      if (tab) {
+        const orderKey = `data_order_${tab.id}`;
+        const result = await chrome.storage.local.get([orderKey]);
+        const order = result[orderKey] || [];
+        this.addDebugInfo(`Loaded data order with ${order.length} items`);
+        return order;
+      }
+      return [];
+    } catch (error) {
+      this.addDebugInfo(`Failed to load data order: ${error.message}`);
+      return [];
+    }
+  }
+  
+  async saveDataOrder(order) {
+    try {
+      const tab = await this.getCurrentTab();
+      if (tab) {
+        const orderKey = `data_order_${tab.id}`;
+        await chrome.storage.local.set({ [orderKey]: order });
+        this.addDebugInfo(`Data order saved with ${order.length} items`);
+      }
+    } catch (error) {
+      this.addDebugInfo(`Failed to save data order: ${error.message}`);
+      throw error;
+    }
+  }
+  
+  async getHiddenItems() {
+    try {
+      const tab = await this.getCurrentTab();
+      if (tab) {
+        const hiddenKey = `hidden_items_${tab.id}`;
+        const result = await chrome.storage.local.get([hiddenKey]);
+        const hiddenItems = result[hiddenKey] || [];
+        this.addDebugInfo(`Loaded ${hiddenItems.length} hidden items`);
+        return hiddenItems;
+      }
+      return [];
+    } catch (error) {
+      this.addDebugInfo(`Failed to load hidden items: ${error.message}`);
+      return [];
+    }
+  }
+  
+  async saveHiddenItems(hiddenItems) {
+    try {
+      const tab = await this.getCurrentTab();
+      if (tab) {
+        const hiddenKey = `hidden_items_${tab.id}`;
+        await chrome.storage.local.set({ [hiddenKey]: hiddenItems });
+        this.addDebugInfo(`Hidden items saved: ${hiddenItems.length} items`);
+      }
+    } catch (error) {
+      this.addDebugInfo(`Failed to save hidden items: ${error.message}`);
+      throw error;
+    }
+  }
 }

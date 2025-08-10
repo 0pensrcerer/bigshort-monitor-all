@@ -33,8 +33,12 @@ export class TradingMonitorSidebar {
   
   addDebugInfo(info) {
     const timestamp = new Date().toLocaleTimeString();
-    this.debugInfo.push(`${timestamp}: ${info}`);
+    const message = `${timestamp}: ${info}`;
+    this.debugInfo.push(message);
     if (this.debugInfo.length > 50) this.debugInfo.shift(); // Keep last 50 entries
+    
+    // Update debug UI
+    this.uiController.updateDebugInfo(this.debugInfo);
   }
   
   async initialize() {
@@ -44,9 +48,12 @@ export class TradingMonitorSidebar {
       // Load saved thresholds
       await this.thresholdManager.loadThresholds();
       
-      // Check current tab and setup UI
+      // Setup UI event handlers
       await this.setupUI();
       await this.checkInitialStatus();
+      
+      // Setup debug UI
+      this.uiController.setupDebugUI();
       
       // Setup test function
       this.setupTestFunction();
@@ -79,6 +86,22 @@ export class TradingMonitorSidebar {
     this.uiController.onThresholdClear(async (key) => {
       await this.clearThreshold(key);
     });
+    
+    this.uiController.onOrderChanged(async (order) => {
+      await this.saveDataOrder(order);
+    });
+    
+    this.uiController.onHiddenItemsChanged(async (hiddenItems) => {
+      await this.saveHiddenItems(hiddenItems);
+    });
+    
+    this.uiController.onReRender(() => {
+      this.forceDataRender();
+    });
+    
+    // Load saved data order and hidden items
+    await this.loadDataOrder();
+    await this.loadHiddenItems();
   }
   
   async checkInitialStatus() {
@@ -189,6 +212,56 @@ export class TradingMonitorSidebar {
     this.addDebugInfo(`Threshold cleared for ${key}`);
   }
   
+  async loadDataOrder() {
+    try {
+      const order = await this.storageService.getDataOrder();
+      this.uiController.setDataOrder(order);
+      this.addDebugInfo(`Loaded data order: ${order.join(', ')}`);
+    } catch (error) {
+      this.addDebugInfo(`Failed to load data order: ${error.message}`);
+    }
+  }
+  
+  async saveDataOrder(order) {
+    try {
+      await this.storageService.saveDataOrder(order);
+      this.addDebugInfo(`Saved data order: ${order.join(', ')}`);
+    } catch (error) {
+      this.addDebugInfo(`Failed to save data order: ${error.message}`);
+    }
+  }
+  
+  async loadHiddenItems() {
+    try {
+      const hiddenItems = await this.storageService.getHiddenItems();
+      this.uiController.setHiddenItems(hiddenItems);
+      this.addDebugInfo(`Loaded hidden items: ${hiddenItems.join(', ')}`);
+    } catch (error) {
+      this.addDebugInfo(`Failed to load hidden items: ${error.message}`);
+    }
+  }
+  
+  async saveHiddenItems(hiddenItems) {
+    try {
+      await this.storageService.saveHiddenItems(hiddenItems);
+      this.addDebugInfo(`Saved hidden items: ${hiddenItems.join(', ')}`);
+    } catch (error) {
+      this.addDebugInfo(`Failed to save hidden items: ${error.message}`);
+    }
+  }
+  
+  forceDataRender() {
+    // Re-render the UI with current data immediately
+    if (this.currentTableData && Object.keys(this.currentTableData).length > 0) {
+      this.addDebugInfo('Force rendering current data due to visibility change');
+      const thresholdResults = this.thresholdManager.checkAllThresholds(this.currentTableData);
+      this.uiController.renderTableData(this.currentTableData, thresholdResults);
+    } else {
+      this.addDebugInfo('No current data to render');
+      this.uiController.showNoData();
+    }
+  }
+  
   startDataUpdates() {
     if (this.updateInterval) return;
     
@@ -216,15 +289,21 @@ export class TradingMonitorSidebar {
   
   async updateData() {
     if (!this.isMonitoringActive) {
+      this.addDebugInfo('Update skipped - monitoring not active');
       return;
     }
     
+    this.addDebugInfo('Fetching table data...');
     const data = await this.dataService.getTableData();
     
+    this.addDebugInfo(`Data fetch result: ${data ? `${Object.keys(data).length} items` : 'null/empty'}`);
+    
     if (data) {
+      this.addDebugInfo(`Processing data: ${JSON.stringify(data)}`);
       this.processDataUpdate(data);
       this.uiController.updateDataIndicator(true);
     } else {
+      this.addDebugInfo('No data received - showing no data message');
       this.uiController.showNoData();
       this.uiController.updateDataIndicator(false);
     }
@@ -250,6 +329,12 @@ export class TradingMonitorSidebar {
       
       // Update UI
       this.uiController.renderTableData(data, thresholdResults);
+      
+      // Flash indicator only when data actually changes
+      if (hasChanges) {
+        this.uiController.updateDataIndicator(true);
+      }
+      
       this.addDebugInfo('Table data rendered');
     }
   }
@@ -267,6 +352,21 @@ export class TradingMonitorSidebar {
       document.getElementById('table-data-section').style.display = 'block';
       this.processDataUpdate(testData);
       return testData;
+    };
+    
+    window.resetHiddenItems = async () => {
+      this.addDebugInfo('Resetting hidden items');
+      this.uiController.setHiddenItems([]);
+      await this.saveHiddenItems([]);
+      this.addDebugInfo('Hidden items reset - all items should now be visible');
+    };
+    
+    window.showDebugInfo = () => {
+      console.log('Current debug info:', this.debugInfo);
+      console.log('Hidden items:', this.uiController.hiddenItems);
+      console.log('Data order:', this.uiController.dataOrder);
+      console.log('Current data:', this.currentTableData);
+      console.log('Is monitoring active:', this.isMonitoringActive);
     };
   }
   

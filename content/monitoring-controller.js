@@ -9,6 +9,9 @@ window.TradingMonitor.MonitoringController = class MonitoringController {
     this.interval = null;
     this.isRunning = false;
     this.debugCallback = null;
+    this.mouseEventTriggered = false; // Track if mouse event has been triggered
+    this.lastMouseEventTime = 0; // Track when we last triggered mouse event
+    this.mouseEventInterval = 10000; // Re-trigger mouse event every 10 seconds
   }
   
   setDebugCallback(callback) {
@@ -28,10 +31,15 @@ window.TradingMonitor.MonitoringController = class MonitoringController {
     }
 
     try {
-      this.addDebugInfo('Starting monitor - running every 0.5 seconds');
+      this.addDebugInfo('Starting monitor - triggering initial mouse event');
+      
+      // Trigger initial mouse event once
+      await this.triggerInitialMouseEvent();
+      
+      this.addDebugInfo('Setting up data monitoring every 1 second');
       this.interval = setInterval(() => {
-        this.monitoringCycle();
-      }, 500);
+        this.monitorDataOnly();
+      }, 1000); // Changed to 1 second
       
       this.isRunning = true;
       
@@ -64,6 +72,52 @@ window.TradingMonitor.MonitoringController = class MonitoringController {
       this.extractTableDataDelayed();
     } catch (error) {
       this.addDebugInfo(`Monitoring cycle error: ${error.message}`, 'error');
+    }
+  }
+  
+  async triggerInitialMouseEvent() {
+    try {
+      this.addDebugInfo('Triggering initial mouse event...');
+      this.simulateMouseEvents();
+      this.lastMouseEventTime = Date.now();
+      
+      // Wait a bit for the tooltip to render before extracting data
+      await new Promise(resolve => setTimeout(resolve, 150));
+      this.dataExtractor.extractCurrentTableData();
+      this.dataExtractor.logDataUpdate();
+      
+      this.mouseEventTriggered = true;
+      this.addDebugInfo('Initial mouse event triggered successfully');
+    } catch (error) {
+      this.addDebugInfo(`Initial mouse event error: ${error.message}`, 'error');
+    }
+  }
+  
+  monitorDataOnly() {
+    try {
+      this.addDebugInfo('Monitoring data...');
+      
+      const now = Date.now();
+      const timeSinceLastMouseEvent = now - this.lastMouseEventTime;
+      
+      // Re-trigger mouse event every 5 seconds to keep tooltip visible
+      if (timeSinceLastMouseEvent >= this.mouseEventInterval) {
+        this.addDebugInfo('Re-triggering mouse event to refresh tooltip');
+        this.simulateMouseEvents();
+        this.lastMouseEventTime = now;
+        
+        // Wait for tooltip to appear
+        setTimeout(() => {
+          this.dataExtractor.extractCurrentTableData();
+          this.dataExtractor.logDataUpdate();
+        }, 150);
+      } else {
+        this.addDebugInfo(`Next mouse event in ${Math.ceil((this.mouseEventInterval - timeSinceLastMouseEvent) / 1000)}s`);
+        this.dataExtractor.extractCurrentTableData();
+        this.dataExtractor.logDataUpdate();
+      }
+    } catch (error) {
+      this.addDebugInfo(`Data monitoring error: ${error.message}`, 'error');
     }
   }
   

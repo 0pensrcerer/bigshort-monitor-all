@@ -51,6 +51,25 @@ export class DataService {
       
     } catch (error) {
       this.addDebugInfo(`Table data update error: ${error.message}`);
+      
+      // If content script is not responding, try to reinject it
+      if (error.message.includes('Could not establish connection') || 
+          error.message.includes('Receiving end does not exist')) {
+        this.addDebugInfo('Content script not responding - attempting to reinject...');
+        try {
+          const tab = await this.getCurrentTab();
+          if (tab) {
+            await chrome.runtime.sendMessage({ 
+              action: 'reinject_content_script', 
+              tabId: tab.id 
+            });
+            this.addDebugInfo('Content script reinjection requested');
+          }
+        } catch (reinjectError) {
+          this.addDebugInfo(`Failed to reinject content script: ${reinjectError.message}`);
+        }
+      }
+      
       return null;
     }
   }
@@ -64,11 +83,11 @@ export class DataService {
       this.addDebugInfo(`Storage result: ${JSON.stringify(result)}`);
       
       if (result[storageKey] && result[storageKey].data) {
-        // Check if data is recent (within last 5 seconds)
+        // Check if data is recent (within last 30 seconds)
         const age = Date.now() - result[storageKey].timestamp;
-        this.addDebugInfo(`Data age: ${age}ms (max 5000ms)`);
+        this.addDebugInfo(`Data age: ${age}ms (max 30000ms)`);
         
-        if (age < 5000) {
+        if (age < 30000) {
           this.addDebugInfo('Using recent storage data');
           return result[storageKey].data;
         } else {

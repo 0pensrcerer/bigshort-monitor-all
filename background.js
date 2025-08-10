@@ -17,6 +17,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Open side panel from content script or other sources
       chrome.sidePanel.open({ tabId: message.tabId });
       sendResponse({ success: true });
+    } else if (message.action === 'reinject_content_script') {
+      // Reinject content script if it's not responding
+      const tabId = message.tabId;
+      if (tabId) {
+        reinjectContentScript(tabId)
+          .then(() => sendResponse({ success: true }))
+          .catch(error => sendResponse({ error: error.message }));
+      } else {
+        sendResponse({ error: 'No tab ID provided' });
+      }
     } else if (message.action === 'dataUpdate') {
       // Forward data updates from content script to sidebar
       // Note: We can't directly send to sidebar, so we'll store in chrome.storage for sidebar to pick up
@@ -52,6 +62,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   return true; // Keep message channel open
 });
+
+// Function to reinject content script
+async function reinjectContentScript(tabId) {
+  try {
+    // Check if tab exists and is accessible
+    const tab = await chrome.tabs.get(tabId);
+    
+    if (!tab.url.includes('bigshort.com')) {
+      throw new Error('Tab is not on BigShort domain');
+    }
+    
+    // Inject the content script
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['content.js']
+    });
+    
+    console.log(`Content script reinjected for tab ${tabId}`);
+    return true;
+  } catch (error) {
+    console.error(`Failed to reinject content script for tab ${tabId}:`, error);
+    throw error;
+  }
+}
 
 // Clean up storage when tabs are closed
 chrome.tabs.onRemoved.addListener((tabId) => {

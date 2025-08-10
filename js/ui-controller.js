@@ -23,6 +23,33 @@ export class UIController {
     this.debugCallback = callback;
   }
   
+  getRandomColor() {
+    const colors = [
+      '#ff6b6b', // Red
+      '#4ecdc4', // Teal
+      '#45b7d1', // Blue
+      '#96ceb4', // Green
+      '#feca57', // Yellow
+      '#ff9ff3', // Pink
+      '#54a0ff', // Light Blue
+      '#5f27cd', // Purple
+      '#00d2d3', // Cyan
+      '#ff9f43', // Orange
+      '#10ac84', // Emerald
+      '#ee5a24', // Red Orange
+      '#0abde3', // Sky Blue
+      '#8395a7', // Gray Blue
+      '#222f3e', // Dark Blue
+      '#c44569', // Magenta
+      '#f8b500', // Amber
+      '#6c5ce7', // Purple Blue
+      '#fd79a8', // Light Pink
+      '#00b894', // Mint Green
+    ];
+    
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+  
   addDebugInfo(message) {
     if (this.debugCallback) {
       this.debugCallback(message);
@@ -134,6 +161,10 @@ export class UIController {
     dataItem.className = 'data-item';
     dataItem.setAttribute('data-key', key);
     dataItem.draggable = true;
+    
+    // Apply random color for border
+    const randomColor = this.getRandomColor();
+    dataItem.style.setProperty('--item-color', randomColor);
     
     // Apply hidden state
     if (isHidden) {

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Trading Monitor - Crosshair Control</title>
+    <style>
+        body {
+            width: 300px;
+            padding: 15px;
+            background: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 13px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #333;
+        }
+        
+        .title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff4444;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .control-section {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 5px;
+            border-left: 3px solid #ff4444;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #ff4444;
+        }
+        
+        .button {
+            width: 100%;
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .button:hover {
+            background: #444;
+            border-color: #ff4444;
+        }
+        
+        .button.primary {
+            background: #ff4444;
+            border-color: #ff4444;
+        }
+        
+        .button.primary:hover {
+            background: #ff6666;
+        }
+        
+        .button:disabled {
+            background: #222;
+            color: #666;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-size: 11px;
+            text-align: center;
+        }
+        
+        .status.active {
+            background: #2d5a2d;
+            color: #90ff90;
+            border: 1px solid #4a8a4a;
+        }
+        
+        .status.inactive {
+            background: #5a2d2d;
+            color: #ff9090;
+            border: 1px solid #8a4a4a;
+        }
+        
+        .coordinates {
+            font-family: monospace;
+            background: #111;
+            padding: 5px;
+            border-radius: 3px;
+            margin-top: 5px;
+            text-align: center;
+            color: #00ff00;
+        }
+        
+        .instruction {
+            background: #2a2a40;
+            padding: 8px;
+            border-radius: 3px;
+            border-left: 3px solid #4488ff;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #ccccff;
+        }
+        
+        .warning {
+            background: #5a4a2d;
+            color: #ffcc90;
+            border-left-color: #ff8844;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">🎯 Crosshair Control</div>
+        <div class="subtitle">Set precise mouse targeting</div>
+    </div>
+    
+    <div class="control-section">
+        <div class="section-title">Crosshair Status</div>
+        <div id="status" class="status inactive">Crosshair Inactive</div>
+        <div id="coordinates" class="coordinates">x: ---, y: ---</div>
+    </div>
+    
+    <div class="control-section">
+        <div class="section-title">Controls</div>
+        <button id="showCrosshair" class="button primary">Show Crosshair</button>
+        <button id="hideCrosshair" class="button">Hide Crosshair</button>
+        <button id="refreshStatus" class="button">Refresh Status</button>
+    </div>
+    
+    <div class="control-section">
+        <div class="instruction">
+            <strong>How to use:</strong><br>
+            1. Click "Show Crosshair" to display the targeting crosshair<br>
+            2. Drag the crosshair to your desired position on the chart<br>
+            3. The plugin will use these coordinates for data extraction<br>
+            4. Hide the crosshair when positioning is complete
+        </div>
+    </div>
+    
+    <div class="control-section">
+        <div class="instruction warning">
+            <strong>Note:</strong> Make sure to position the crosshair over an area of the chart that contains data points for accurate monitoring.
+        </div>
+    </div>
+    
+    <script src="crosshair-control.js"></script>
+</body>
+</html>

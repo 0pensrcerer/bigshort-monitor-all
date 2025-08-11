@@ -79,6 +79,131 @@ export class TradingMonitorSidebar {
     this.uiController.onThresholdClear(async (key) => {
       await this.clearThreshold(key);
     });
+    
+    // Setup crosshair controls
+    this.setupCrosshairControls();
+  }
+  
+  setupCrosshairControls() {
+    const showBtn = document.getElementById('show-crosshair-btn');
+    const hideBtn = document.getElementById('hide-crosshair-btn');
+    const refreshBtn = document.getElementById('refresh-crosshair-btn');
+    
+    if (showBtn) {
+      showBtn.addEventListener('click', async () => {
+        await this.showCrosshair();
+      });
+    }
+    
+    if (hideBtn) {
+      hideBtn.addEventListener('click', async () => {
+        await this.hideCrosshair();
+      });
+    }
+    
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async () => {
+        await this.refreshCrosshairStatus();
+      });
+    }
+    
+    // Initial status check
+    this.refreshCrosshairStatus();
+  }
+  
+  async showCrosshair() {
+    try {
+      const tab = await this.storageService.getCurrentTab();
+      if (!tab) {
+        this.updateCrosshairUI(false);
+        return;
+      }
+      
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'showCrosshair'
+      });
+      
+      if (response && response.success) {
+        this.addDebugInfo('Crosshair activated');
+        this.updateCrosshairUI(true);
+      } else {
+        this.addDebugInfo('Failed to activate crosshair');
+        this.updateCrosshairUI(false);
+      }
+    } catch (error) {
+      this.addDebugInfo(`Crosshair error: ${error.message}`);
+      this.updateCrosshairUI(false);
+    }
+  }
+  
+  async hideCrosshair() {
+    try {
+      const tab = await this.storageService.getCurrentTab();
+      if (!tab) {
+        this.updateCrosshairUI(false);
+        return;
+      }
+      
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'hideCrosshair'
+      });
+      
+      if (response && response.success) {
+        this.addDebugInfo('Crosshair hidden');
+        this.updateCrosshairUI(false);
+      } else {
+        this.addDebugInfo('Failed to hide crosshair');
+      }
+    } catch (error) {
+      this.addDebugInfo(`Crosshair error: ${error.message}`);
+      this.updateCrosshairUI(false);
+    }
+  }
+  
+  async refreshCrosshairStatus() {
+    try {
+      const tab = await this.storageService.getCurrentTab();
+      if (!tab) {
+        this.updateCrosshairUI(false);
+        return;
+      }
+      
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'getCrosshairCoords'
+      });
+      
+      if (response) {
+        this.updateCrosshairUI(response.active, response.coordinates);
+        this.addDebugInfo(`Crosshair status: ${response.active ? 'active' : 'inactive'}`);
+      } else {
+        this.updateCrosshairUI(false);
+      }
+    } catch (error) {
+      this.addDebugInfo(`Crosshair status error: ${error.message}`);
+      this.updateCrosshairUI(false);
+    }
+  }
+  
+  updateCrosshairUI(isActive, coordinates = null) {
+    const statusElement = document.getElementById('crosshair-status');
+    const coordsElement = document.getElementById('crosshair-coords');
+    const indicator = document.getElementById('crosshair-indicator');
+    
+    if (statusElement) {
+      statusElement.textContent = isActive ? 'Active' : 'Inactive';
+    }
+    
+    if (coordsElement) {
+      if (coordinates && coordinates.x > 0 && coordinates.y > 0) {
+        coordsElement.textContent = `x: ${coordinates.x}, y: ${coordinates.y}`;
+      } else {
+        coordsElement.textContent = 'x: ---, y: ---';
+      }
+    }
+    
+    if (indicator) {
+      indicator.className = isActive ? 'data-indicator active' : 'data-indicator';
+    }
   }
   
   async checkInitialStatus() {

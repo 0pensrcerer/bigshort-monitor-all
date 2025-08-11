@@ -105,21 +105,32 @@ window.TradingMonitor.TradingDataMonitor = class TradingDataMonitor {
         await this.components.messageHandler.notifyDataUpdate(data);
         this.addDebugInfo('Sidebar notification sent successfully');
       } catch (error) {
+        if (error.message.includes('Extension context invalidated') || 
+            error.message.includes('context invalidated') ||
+            error.message.includes('The extension context')) {
+          this.addDebugInfo('🔄 Extension context invalidated - data change handling failed', 'warning');
+          // Don't continue processing when extension context is gone
+          return;
+        }
         this.addDebugInfo(`Sidebar notification failed: ${error.message}`, 'error');
       }
     };
-    
+
     // Setup threshold breach notifications
     this.components.dataExtractor.onThresholdBreach = async (breach) => {
       try {
         await this.components.messageHandler.notifyThresholdBreach(breach);
       } catch (error) {
-        // Silently handle notification failures
+        if (error.message.includes('Extension context invalidated') || 
+            error.message.includes('context invalidated') ||
+            error.message.includes('The extension context')) {
+          this.addDebugInfo('🔄 Extension context invalidated - threshold breach notification skipped', 'warning');
+          return;
+        }
+        // Silently handle other notification failures
       }
     };
-  }
-  
-  async checkTabStatus() {
+  }  async checkTabStatus() {
     try {
       // Add debugging to check if storageManager exists and has the method
       if (!this.components.storageManager) {

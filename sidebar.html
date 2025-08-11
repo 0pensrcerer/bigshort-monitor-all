@@ -202,12 +202,6 @@
     .data-item.changed {
       border-left-color: #28a745;
       background: #d4edda;
-      animation: highlight 1s ease-out;
-    }
-    
-    @keyframes highlight {
-      0% { background: #28a745; }
-      100% { background: #d4edda; }
     }
     
     .data-label {
@@ -469,8 +463,38 @@
       <button id="disable-btn" class="disable-btn">Disable</button>
     </div>
     
+    <button id="reload-btn" class="reload-btn">Reload Page</button>
+    
     <div class="note">
       <strong>Note:</strong> This controls monitoring for the current tab only. Other BigShort tabs are unaffected. <strong>RELOAD PAGE AFTER DISABLING.</strong>
+    </div>
+    
+    <!-- Crosshair Control Section -->
+    <div class="table-data-section" id="crosshair-section">
+      <div class="table-data-header">
+        <span class="data-indicator" id="crosshair-indicator"></span>
+        🎯 Mouse Targeting Control
+      </div>
+      <div class="table-data-content">
+        <div class="data-item" id="crosshair-status-item">
+          <div class="data-label">Crosshair Status</div>
+          <div class="data-value" id="crosshair-status">Inactive</div>
+        </div>
+        <div class="data-item" id="crosshair-coords-item">
+          <div class="data-label">Target Coordinates</div>
+          <div class="data-value" id="crosshair-coords">x: ---, y: ---</div>
+        </div>
+        <div class="button-container">
+          <button id="show-crosshair-btn" class="enable-btn">Show Crosshair</button>
+          <button id="hide-crosshair-btn" class="disable-btn">Hide Crosshair</button>
+        </div>
+        <div class="button-container">
+          <button id="refresh-crosshair-btn" class="reload-btn" style="margin-top: 0;">Refresh Status</button>
+        </div>
+        <div class="note">
+          <strong>How to use:</strong> Click "Show Crosshair" to display a red crosshair overlay. Drag it to your desired chart position for precise data extraction. The crosshair replaces unreliable automatic targeting.
+        </div>
+      </div>
     </div>
     
     <!-- Table Data Section -->

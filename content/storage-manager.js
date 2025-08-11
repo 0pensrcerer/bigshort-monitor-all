@@ -20,14 +20,29 @@ window.TradingMonitor.StorageManager = class StorageManager {
   async getCurrentTabId() {
     return new Promise((resolve) => {
       if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.sendMessage({ action: 'get_tab_id' }, (response) => {
-          if (chrome.runtime.lastError) {
-            this.addDebugInfo('Could not get tab ID from runtime', 'warning');
-            resolve(null);
+        try {
+          chrome.runtime.sendMessage({ action: 'get_tab_id' }, (response) => {
+            if (chrome.runtime.lastError) {
+              if (chrome.runtime.lastError.message.includes('Extension context invalidated') ||
+                  chrome.runtime.lastError.message.includes('context invalidated')) {
+                this.addDebugInfo('Extension context invalidated - cannot get tab ID', 'warning');
+              } else {
+                this.addDebugInfo('Could not get tab ID from runtime', 'warning');
+              }
+              resolve(null);
+            } else {
+              resolve(response?.tabId || null);
+            }
+          });
+        } catch (error) {
+          if (error.message.includes('Extension context invalidated') ||
+              error.message.includes('context invalidated')) {
+            this.addDebugInfo('Extension context invalidated in getCurrentTabId', 'warning');
           } else {
-            resolve(response?.tabId || null);
+            this.addDebugInfo(`Error getting tab ID: ${error.message}`, 'warning');
           }
-        });
+          resolve(null);
+        }
       } else {
         resolve(null);
       }

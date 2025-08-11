@@ -140,6 +140,12 @@ window.TradingMonitor.MessageHandler = class MessageHandler {
   // Fallback method to store data when extension context is lost
   async storeFallbackData(action, data) {
     try {
+      // Check if chrome storage is still available
+      if (!chrome.storage || !chrome.storage.local) {
+        this.addDebugInfo('Chrome storage not available - extension context invalidated', 'warning');
+        return;
+      }
+      
       const tabId = await this.storageManager.getCurrentTabId();
       if (action === 'dataUpdate' && tabId) {
         const storageKey = `latest_data_${tabId}`;
@@ -152,6 +158,12 @@ window.TradingMonitor.MessageHandler = class MessageHandler {
         this.addDebugInfo('Data stored in fallback storage');
       }
     } catch (fallbackError) {
+      if (fallbackError.message.includes('Extension context invalidated') || 
+          fallbackError.message.includes('context invalidated') ||
+          fallbackError.message.includes('The extension context')) {
+        this.addDebugInfo('Extension context invalidated - fallback storage skipped', 'warning');
+        return;
+      }
       this.addDebugInfo(`Fallback storage failed: ${fallbackError.message}`, 'error');
     }
   }
@@ -167,6 +179,14 @@ window.TradingMonitor.MessageHandler = class MessageHandler {
         this.addDebugInfo('Data update notification sent successfully');
       }
     } catch (error) {
+      if (error.message.includes('Extension context invalidated') || 
+          error.message.includes('context invalidated') ||
+          error.message.includes('The extension context')) {
+        this.addDebugInfo('🔄 Extension context invalidated - data update notification skipped', 'warning');
+        // Don't try fallback storage when extension context is invalidated
+        return;
+      }
+      
       // Try fallback storage directly if message sending fails
       this.addDebugInfo(`Data update notification failed: ${error.message}`, 'warning');
       await this.storeFallbackData('dataUpdate', { data });

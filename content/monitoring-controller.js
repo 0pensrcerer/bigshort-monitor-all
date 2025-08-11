@@ -68,14 +68,8 @@ window.TradingMonitor.MonitoringController = class MonitoringController {
   }
   
   simulateMouseEvents() {
-    const targetElement = this.chartTargeting.findTargetElement();
-    
-    if (!targetElement) {
-      return;
-    }
-
-    const coordinates = this.chartTargeting.getTargetCoordinates(targetElement);
-    this.mouseSimulator.simulateMouseEvents(targetElement, coordinates);
+    // Use the new crosshair-based targeting system
+    this.chartTargeting.simulateMouseEvent();
   }
   
   extractTableDataDelayed() {

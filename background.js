@@ -1,22 +1,19 @@
-// Background script for handling tab-specific operations and side panel
+// Background script for handling tab-specific operations and monitor windows
 
-// Handle extension icon clicks to open side panel
-chrome.action.onClicked.addListener((tab) => {
-  // Open side panel when extension icon is clicked
-  chrome.sidePanel.open({ tabId: tab.id });
-});
+let monitorWindows = new Map(); // Track monitor windows by tab ID
 
-// Handle messages from content scripts and side panel
+// Handle messages from content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   try {
     if (message.action === 'get_tab_id') {
       // Return the tab ID from sender information
       const tabId = sender.tab ? sender.tab.id : null;
       sendResponse({ tabId });
-    } else if (message.action === 'open_side_panel') {
-      // Open side panel from content script or other sources
-      chrome.sidePanel.open({ tabId: message.tabId });
-      sendResponse({ success: true });
+    } else if (message.action === 'open_monitor_window') {
+      // Open monitor window for specific tab
+      openMonitorWindow(message.tabId)
+        .then((windowId) => sendResponse({ success: true, windowId }))
+        .catch(error => sendResponse({ error: error.message }));
     } else if (message.action === 'reinject_content_script') {
       // Reinject content script if it's not responding
       const tabId = message.tabId;
@@ -28,8 +25,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ error: 'No tab ID provided' });
       }
     } else if (message.action === 'dataUpdate') {
-      // Forward data updates from content script to sidebar
-      // Note: We can't directly send to sidebar, so we'll store in chrome.storage for sidebar to pick up
+      // Forward data updates from content script to monitor window
       const tabId = sender.tab ? sender.tab.id : message.tabId;
       if (tabId) {
         const storageKey = `latest_data_${tabId}`;
@@ -63,7 +59,49 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true; // Keep message channel open
 });
 
-// Function to reinject content script
+// Function to open monitor window for a specific tab
+async function openMonitorWindow(tabId) {
+  try {
+    // Check if tab exists and is accessible
+    const tab = await chrome.tabs.get(tabId);
+    
+    if (!tab.url.includes('bigshort.com')) {
+      throw new Error('Tab is not on BigShort domain');
+    }
+    
+    // Check if window already exists for this tab
+    if (monitorWindows.has(tabId)) {
+      const existingWindowId = monitorWindows.get(tabId);
+      try {
+        // Try to focus existing window
+        const existingWindow = await chrome.windows.get(existingWindowId);
+        await chrome.windows.update(existingWindowId, { focused: true });
+        return existingWindowId;
+      } catch (error) {
+        // Window doesn't exist anymore, remove from tracking
+        monitorWindows.delete(tabId);
+      }
+    }
+    
+    // Create new monitor window
+    const window = await chrome.windows.create({
+      url: `sidebar.html?tabId=${tabId}`,
+      type: 'popup',
+      width: 450,
+      height: 700,
+      focused: true
+    });
+    
+    // Track the window
+    monitorWindows.set(tabId, window.id);
+    
+    console.log(`Monitor window created for tab ${tabId}: window ${window.id}`);
+    return window.id;
+  } catch (error) {
+    console.error(`Failed to open monitor window for tab ${tabId}:`, error);
+    throw error;
+  }
+}
 async function reinjectContentScript(tabId) {
   try {
     // Check if tab exists and is accessible
@@ -94,6 +132,26 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   chrome.storage.local.remove([tabKey]).catch(() => {
     // Ignore errors - storage might not exist
   });
+  
+  // Close monitor window if it exists
+  if (monitorWindows.has(tabId)) {
+    const windowId = monitorWindows.get(tabId);
+    chrome.windows.remove(windowId).catch(() => {
+      // Ignore errors - window might already be closed
+    });
+    monitorWindows.delete(tabId);
+  }
+});
+
+// Clean up tracking when windows are closed
+chrome.windows.onRemoved.addListener((windowId) => {
+  // Find and remove the window from our tracking
+  for (const [tabId, trackedWindowId] of monitorWindows.entries()) {
+    if (trackedWindowId === windowId) {
+      monitorWindows.delete(tabId);
+      break;
+    }
+  }
 });
 
 // Handle extension installation/startup

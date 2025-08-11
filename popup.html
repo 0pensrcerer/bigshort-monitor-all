@@ -1,195 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <style>
     body { 
-      width: 350px; 
-      padding: 20px; 
-      font-family: Arial, sans-serif; 
+      width: 250px;
+      padding: 15px;
       margin: 0;
-      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d3748 100%);
+      color: #e2e8f0;
     }
     
-    h3 { 
-      margin-top: 0; 
-      color: #333; 
+    .header {
       text-align: center;
-      border-bottom: 2px solid #007bff;
-      padding-bottom: 10px;
+      margin-bottom: 15px;
     }
     
-    .status { 
-      padding: 12px; 
-      border-radius: 6px; 
-      margin: 15px 0; 
-      font-weight: bold;
-      text-align: center;
-      animation: fadeIn 0.3s ease-in;
+    .header h3 {
+      margin: 0;
+      color: #4c51bf;
+      font-size: 16px;
     }
     
-    .enabled { 
-      background-color: #d4edda; 
-      color: #155724; 
-      border: 1px solid #c3e6cb;
-    }
-    
-    .disabled { 
-      background-color: #f8d7da; 
-      color: #721c24; 
-      border: 1px solid #f5c6cb;
-    }
-    
-    .info {
-      background-color: #e2e3e5;
-      color: #383d41;
-      border: 1px solid #d6d8db;
-    }
-    
-    .error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    
-    .warning {
-      background-color: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffeaa7;
-    }
-    
-    button { 
-      padding: 12px 20px; 
-      margin: 8px 5px; 
-      border: none; 
-      border-radius: 5px; 
-      cursor: pointer; 
-      font-weight: bold;
-      width: 45%;
-      transition: all 0.2s ease;
-    }
-    
-    .enable-btn { 
-      background-color: #28a745; 
-      color: white; 
-    }
-    
-    .enable-btn:hover { 
-      background-color: #218838; 
-      transform: translateY(-1px);
-    }
-    
-    .disable-btn { 
-      background-color: #dc3545; 
-      color: white; 
-    }
-    
-    .disable-btn:hover { 
-      background-color: #c82333; 
-      transform: translateY(-1px);
-    }
-    
-    .button-container {
-      text-align: center;
-      margin: 20px 0;
-    }
-    
-    .tab-info {
-      background-color: #ffffff;
+    .open-btn {
+      width: 100%;
       padding: 12px;
+      background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
+      color: white;
+      border: none;
       border-radius: 6px;
-      margin: 10px 0;
-      font-size: 12px;
-      color: #6c757d;
-      border: 1px solid #dee2e6;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
     }
     
-    .troubleshoot {
-      background-color: #fff3cd;
-      border: 1px solid #ffeaa7;
-      color: #856404;
-      padding: 10px;
-      border-radius: 5px;
-      margin: 15px 0;
+    .open-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(76, 81, 191, 0.3);
+    }
+    
+    .note {
       font-size: 11px;
-    }
-    
-    .troubleshoot h4 {
-      margin: 0 0 8px 0;
-      font-size: 12px;
-    }
-    
-    .troubleshoot ul {
-      margin: 5px 0 0 15px;
-      padding: 0;
-    }
-    
-    .troubleshoot li {
-      margin: 3px 0;
-    }
-    
-    .debug-info {
-      background-color: #e9ecef;
-      padding: 8px;
-      border-radius: 4px;
-      font-family: monospace;
-      font-size: 10px;
-      margin: 10px 0;
-      max-height: 100px;
-      overflow-y: auto;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    .hidden {
-      display: none;
+      color: #9ca3af;
+      text-align: center;
+      margin-top: 10px;
+      line-height: 1.3;
     }
   </style>
 </head>
 <body>
-  <h3>🔍 Trading Data Monitor</h3>
-  
-  <div class="tab-info">
-    <strong>Current Tab:</strong><br>
-    <span id="current-url">Loading...</span>
+  <div class="header">
+    <h3>🔍 Trading Monitor</h3>
   </div>
   
-  <div id="status" class="status">Checking status...</div>
+  <button id="open-monitor" class="open-btn">
+    Open Monitor Window
+  </button>
   
-  <div class="button-container" id="button-container">
-    <button id="enable-btn" class="enable-btn">Enable</button>
-    <button id="disable-btn" class="disable-btn">Disable</button>
-  </div>
-  
-  <div class="tab-info">
-    <strong>Note:</strong> This controls monitoring for the current tab only. Other BigShort tabs are unaffected.
-  </div>
-  
-  <!-- Troubleshooting Section -->
-  <div class="troubleshoot" id="troubleshoot" style="display: none;">
-    <h4>🔧 Troubleshooting Guide:</h4>
-    <ul>
-      <li><strong>Buttons don't work:</strong> Reload the page and try again</li>
-      <li><strong>Status shows error:</strong> Make sure you're on a BigShort.com page</li>
-      <li><strong>No tooltip data:</strong> Check if SVG elements exist on the page</li>
-      <li><strong>Extension not working:</strong> Check browser console for errors</li>
-    </ul>
-    <button id="reload-btn" style="width: 100%; margin-top: 10px; background-color: #6c757d; color: white;">
-      🔄 Reload Current Tab
-    </button>
-  </div>
-  
-  <!-- Debug Information -->
-  <div class="debug-info" id="debug-info" style="display: none;">
-    <div id="debug-text">Debug info will appear here...</div>
-  </div>
-  
-  <!-- Toggle Links -->
-  <div style="text-align: center; margin-top: 15px; font-size: 11px;">
-    <a href="#" id="show-troubleshoot" style="color: #007bff; text-decoration: none;">Show Troubleshooting</a> | 
-    <a href="#" id="show-debug" style="color: #007bff; text-decoration: none;">Show Debug Info</a>
+  <div class="note">
+    Opens a dedicated monitor window for the current BigShort tab.
   </div>
   
   <script src="popup.js"></script>

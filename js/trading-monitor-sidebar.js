@@ -5,15 +5,16 @@ import { DataService } from './data-service.js';
 import { StorageService } from './storage-service.js';
 
 export class TradingMonitorSidebar {
-  constructor() {
+  constructor(tabId = null) {
+    this.tabId = tabId;
     this.debugInfo = [];
     this.currentTableData = {};
     this.updateInterval = null;
     this.isMonitoringActive = false;
     
     // Initialize services
-    this.storageService = new StorageService();
-    this.dataService = new DataService();
+    this.storageService = new StorageService(this.tabId);
+    this.dataService = new DataService(this.tabId);
     this.thresholdManager = new ThresholdManager(this.storageService);
     this.alarmSystem = new AlarmSystem();
     this.uiController = new UIController(this.thresholdManager, this.dataService);

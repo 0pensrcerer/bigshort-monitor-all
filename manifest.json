@@ -7,8 +7,7 @@
     "activeTab",
     "scripting",
     "storage",
-    "tabs",
-    "sidePanel"
+    "tabs"
   ],
   "host_permissions": [
     "https://*.bigshort.com/*",
@@ -36,10 +35,8 @@
   "background": {
     "service_worker": "background.js"
   },
-  "side_panel": {
-    "default_path": "sidebar.html"
-  },
   "action": {
-    "default_title": "Trading Data Monitor"
+    "default_title": "Trading Data Monitor",
+    "default_popup": "popup.html"
   }
 }

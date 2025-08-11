@@ -1,6 +1,7 @@
 export class StorageService {
-  constructor() {
+  constructor(tabId = null) {
     this.debugCallback = null;
+    this.tabId = tabId;
   }
   
   setDebugCallback(callback) {
@@ -14,8 +15,25 @@ export class StorageService {
   }
   
   async getCurrentTab() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    return tab;
+    // If tabId is provided (popup window), use it
+    if (this.tabId) {
+      try {
+        const tab = await chrome.tabs.get(parseInt(this.tabId));
+        return tab;
+      } catch (error) {
+        this.addDebugInfo(`Failed to get tab ${this.tabId}: ${error.message}`);
+        return null;
+      }
+    }
+    
+    // Otherwise get the active tab (sidepanel mode)
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      return tab;
+    } catch (error) {
+      this.addDebugInfo(`Failed to get active tab: ${error.message}`);
+      return null;
+    }
   }
   
   async getThresholds() {

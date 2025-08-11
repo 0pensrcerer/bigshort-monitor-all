@@ -20,11 +20,8 @@
         "https://bigshort.com/*"
       ],
       "js": [
-        "content/chart-targeting.js",
-        "content/mouse-event-simulator.js", 
-        "content/table-data-extractor.js",
+        "content/optimized-data-monitor.js",
         "content/storage-manager.js",
-        "content/monitoring-controller.js",
         "content/message-handler.js",
         "content/trading-data-monitor.js",
         "content.js"
